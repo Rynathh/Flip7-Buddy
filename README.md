@@ -1,6 +1,6 @@
-# Flip7 Tracker
+# Flip7 Buddy
 
-Ein interaktiver Tracker für das Kartenspiel **Flip7**. Diese Web-Anwendung hilft dabei, die gezogenen Karten zu verwalten, Punkte zu berechnen und die Wahrscheinlichkeiten für einen Fehlschlag (Bust) im Auge zu behalten.
+Ein interaktiver Begleiter (Buddy) für das Kartenspiel **Flip7**. Diese Web-Anwendung hilft dabei, die gezogenen Karten zu verwalten, Punkte zu berechnen und die Wahrscheinlichkeiten für einen Fehlschlag (Bust) im Auge zu behalten.
 
 ## Features
 

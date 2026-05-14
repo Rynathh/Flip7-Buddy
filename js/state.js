@@ -17,11 +17,11 @@ export function saveState() {
         roundStarterId: gameState.roundStarterId,
         history: gameState.history
     };
-    localStorage.setItem('flip7_state', JSON.stringify(state));
+    localStorage.setItem('flip7_buddy_state', JSON.stringify(state));
 }
 
 export function loadState() {
-    const saved = localStorage.getItem('flip7_state');
+    const saved = localStorage.getItem('flip7_buddy_state');
     if (saved) {
         try {
             const state = JSON.parse(saved);
@@ -46,6 +46,6 @@ export function loadState() {
 }
 
 export function clearState() {
-    localStorage.removeItem('flip7_state');
+    localStorage.removeItem('flip7_buddy_state');
     location.reload();
 }

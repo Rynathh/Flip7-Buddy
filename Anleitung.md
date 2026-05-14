@@ -1,4 +1,4 @@
-# Flip7 - Spielanleitung
+# Flip7 Buddy - Anleitung
 
 ## Spielmaterial
 Das Spiel besteht aus Karten mit den Werten von 0 bis 12. Jede Karte kommt so oft vor, wie ihre Zahl angibt (mit einer kleinen Ausnahme für die 0):
