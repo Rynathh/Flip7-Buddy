@@ -170,6 +170,7 @@ export function startNewRound() {
     }
     
     gameState.gameEnded = false;
+    gameState.gameStarted = true;
 }
 
 export function addPlayer(name, isBot) {

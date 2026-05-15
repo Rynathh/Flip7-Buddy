@@ -6,7 +6,8 @@ export const gameState = {
     activePlayerId: null,
     roundStarterId: null,
     history: [],
-    gameEnded: false
+    gameEnded: false,
+    gameStarted: false
 };
 
 export function saveState() {
@@ -15,7 +16,8 @@ export function saveState() {
         players: gameState.players,
         activePlayerId: gameState.activePlayerId,
         roundStarterId: gameState.roundStarterId,
-        history: gameState.history
+        history: gameState.history,
+        gameStarted: gameState.gameStarted
     };
     localStorage.setItem('flip7_buddy_state', JSON.stringify(state));
 }
@@ -37,6 +39,7 @@ export function loadState() {
             gameState.roundStarterId = state.roundStarterId || null;
             gameState.history = state.history || [];
             gameState.history.forEach(h => h.time = new Date(h.time));
+            gameState.gameStarted = state.gameStarted || false;
             return true;
         } catch (e) {
             console.error("Could not load state", e);

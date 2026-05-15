@@ -42,26 +42,41 @@ export const elements = {
 // --- Modal Management ---
 let modalCallback = null;
 
-export function openModal(title, desc, callback, filteredPlayers = null) {
+export function openModal(title, desc, callback, filteredPlayers = null, confirmText = null) {
     elements.modalTitle.textContent = title;
     elements.modalDesc.textContent = desc;
-    modalCallback = callback;
+    elements.modalDesc.style.whiteSpace = 'normal';
     
     elements.modalPlayers.innerHTML = '';
-    const targets = filteredPlayers || gameState.players.filter(p => !p.frozen && !p.hasFinishedRound);
+    elements.btnCancelModal.style.display = 'block';
     
-    targets.forEach(p => {
+    if (confirmText) {
         const btn = document.createElement('button');
         btn.className = 'btn-primary';
         btn.style.width = '100%';
-        btn.style.marginBottom = '0.5rem';
-        btn.textContent = p.name;
+        btn.style.padding = '0.75rem';
+        btn.textContent = confirmText;
         btn.onclick = () => {
             closeModal();
-            if (modalCallback) modalCallback(p.id);
+            if (callback) callback(true);
         };
         elements.modalPlayers.appendChild(btn);
-    });
+    } else {
+        const targets = filteredPlayers || gameState.players.filter(p => !p.frozen && !p.hasFinishedRound);
+        
+        targets.forEach(p => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-primary';
+            btn.style.width = '100%';
+            btn.style.marginBottom = '0.5rem';
+            btn.textContent = p.name;
+            btn.onclick = () => {
+                closeModal();
+                if (callback) callback(p.id);
+            };
+            elements.modalPlayers.appendChild(btn);
+        });
+    }
     
     elements.modal.style.display = 'flex';
 }
@@ -69,6 +84,82 @@ export function openModal(title, desc, callback, filteredPlayers = null) {
 export function closeModal() {
     elements.modal.style.display = 'none';
     modalCallback = null;
+}
+
+export function showAlert(message, title = "Hinweis", callback = null) {
+    elements.modalTitle.textContent = title;
+    elements.modalDesc.textContent = message;
+    elements.modalDesc.style.whiteSpace = 'pre-wrap';
+    
+    elements.modalPlayers.innerHTML = '';
+    elements.btnCancelModal.style.display = 'none';
+    
+    const btn = document.createElement('button');
+    btn.className = 'btn-primary';
+    btn.style.width = '100%';
+    btn.style.padding = '0.75rem';
+    btn.textContent = "OK";
+    btn.onclick = () => {
+        closeModal();
+        if (callback) callback();
+    };
+    elements.modalPlayers.appendChild(btn);
+    
+    elements.modal.style.display = 'flex';
+}
+
+export function showRoundEndModal(players) {
+    elements.modalTitle.textContent = "Runde Beendet!";
+    
+    let html = '<div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">';
+    const sorted = [...players].sort((a,b) => b.score - a.score);
+    sorted.forEach((p, index) => {
+        let icon = '';
+        if (index === 0) icon = '🥇';
+        else if (index === 1) icon = '🥈';
+        else if (index === 2) icon = '🥉';
+        
+        html += `<div style="animation: fadeInUp 0.4s ease forwards ${index * 0.1}s; opacity: 0; display: flex; justify-content: space-between; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 0.4rem; border: 1px solid var(--panel-border);">
+            <span>${icon} ${p.name}</span>
+            <span style="font-weight: bold; color: #34d399;">${p.score}</span>
+        </div>`;
+    });
+    html += '</div><div style="text-align: center; font-size: 0.9rem; color: var(--text-secondary);">Neue Runde startet in <strong id="round-countdown" style="color: white;">5</strong>...</div>';
+    
+    elements.modalDesc.innerHTML = html;
+    elements.modalDesc.style.whiteSpace = 'normal';
+    
+    elements.modalPlayers.innerHTML = '';
+    
+    const btn = document.createElement('button');
+    btn.className = 'btn-success';
+    btn.style.width = '100%';
+    btn.style.marginTop = '0.5rem';
+    btn.textContent = "Jetzt starten";
+    btn.onclick = () => {
+        if(window.roundEndTimer) clearInterval(window.roundEndTimer);
+        closeModal();
+        Engine.startNewRound();
+        updateUI();
+    };
+    elements.modalPlayers.appendChild(btn);
+    
+    elements.btnCancelModal.style.display = 'none';
+    elements.modal.style.display = 'flex';
+    
+    let timeLeft = 5;
+    if (window.roundEndTimer) clearInterval(window.roundEndTimer);
+    window.roundEndTimer = setInterval(() => {
+        timeLeft--;
+        const el = document.getElementById('round-countdown');
+        if (el) el.textContent = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(window.roundEndTimer);
+            closeModal();
+            Engine.startNewRound();
+            updateUI();
+        }
+    }, 1000);
 }
 
 // --- UI Rendering ---
@@ -182,7 +273,25 @@ export function updateUI() {
     saveState();
     
     checkWinner();
-    handleBotTurn(activePlayer);
+    
+    if (gameState.gameStarted) {
+        elements.btnNewRound.textContent = "Neue Runde";
+        elements.btnNewRound.classList.remove('btn-primary');
+        elements.btnNewRound.classList.add('btn-success');
+        handleBotTurn(activePlayer);
+    } else {
+        elements.btnNewRound.textContent = "Spiel starten";
+        elements.btnNewRound.classList.remove('btn-success');
+        elements.btnNewRound.classList.add('btn-primary');
+    }
+    
+    const allFinished = gameState.players.length > 0 && gameState.players.every(p => p.frozen || p.hasFinishedRound);
+    if (gameState.gameStarted && allFinished && !window.roundEndPopupShown && !gameState.gameEnded) {
+        window.roundEndPopupShown = true;
+        setTimeout(() => showRoundEndModal(gameState.players), 500);
+    } else if (!allFinished) {
+        window.roundEndPopupShown = false;
+    }
 }
 
 function updateButtonStates(activePlayer) {
@@ -202,17 +311,17 @@ function updateButtonStates(activePlayer) {
             btn.disabled = true;
         } else {
             btn.classList.remove('empty');
-            btn.disabled = (!gameState.activePlayerId || (activePlayer && (activePlayer.frozen || activePlayer.isBot)));
+            btn.disabled = (!gameState.gameStarted || !gameState.activePlayerId || (activePlayer && (activePlayer.frozen || activePlayer.isBot)));
         }
     });
     
-    if (activePlayer && activePlayer.isBot) {
+    if (!gameState.gameStarted || (activePlayer && activePlayer.isBot)) {
         elements.btnBank.disabled = true;
         elements.btnBust.disabled = true;
         if(elements.btnDrawRandom) elements.btnDrawRandom.disabled = true;
     } else {
         if(elements.btnDrawRandom) {
-            elements.btnDrawRandom.disabled = (!gameState.activePlayerId || (activePlayer && activePlayer.frozen));
+            elements.btnDrawRandom.disabled = (!gameState.gameStarted || !gameState.activePlayerId || (activePlayer && activePlayer.frozen));
         }
     }
 }
@@ -221,8 +330,9 @@ function checkWinner() {
     const winner = gameState.players.find(p => p.score >= 200);
     if (winner && !gameState.gameEnded) {
         gameState.gameEnded = true;
+        if (window.roundEndTimer) clearInterval(window.roundEndTimer);
         setTimeout(() => {
-            alert(`🎉 Das Spiel ist vorbei! 🎉\n\n${winner.name} hat ${winner.score} Punkte erreicht und somit gewonnen!`);
+            showAlert(`🎉 Das Spiel ist vorbei! 🎉\n\n${winner.name} hat ${winner.score} Punkte erreicht und somit gewonnen!`, "Spielende");
         }, 500);
     }
 }
@@ -250,8 +360,8 @@ function handleBotTurn(activePlayer) {
 
 function selectPlayer(id) {
     const p = gameState.players.find(p => p.id === id);
-    if (p.frozen) return alert("Dieser Spieler ist eingefroren!");
-    if (p.hasFinishedRound) return alert("Dieser Spieler hat die Runde bereits beendet!");
+    if (p.frozen) return showAlert("Dieser Spieler ist eingefroren!");
+    if (p.hasFinishedRound) return showAlert("Dieser Spieler hat die Runde bereits beendet!");
     gameState.activePlayerId = id;
     updateUI();
 }
@@ -289,7 +399,7 @@ export function renderCardButtons(onDraw) {
 
 export function virtualDrawCard(playerOverride) {
     const player = playerOverride || Engine.getActivePlayer();
-    if (!player) return alert("Bitte wähle zuerst einen Spieler aus.");
+    if (!player) return showAlert("Bitte wähle zuerst einen Spieler aus.");
     
     const totalCards = Engine.getTotalCardsInDeck();
     if (totalCards === 0) {
@@ -317,10 +427,10 @@ export function virtualDrawCard(playerOverride) {
 }
 
 export function drawCard(key, isSpecial) {
-    if(!gameState.activePlayerId) return alert("Bitte wähle zuerst einen Spieler aus.");
+    if(!gameState.activePlayerId) return showAlert("Bitte wähle zuerst einen Spieler aus.");
     
     const player = Engine.getActivePlayer();
-    if(player.frozen || player.hasFinishedRound) return alert("Dieser Spieler ist für diese Runde ausgeschieden!");
+    if(player.frozen || player.hasFinishedRound) return showAlert("Dieser Spieler ist für diese Runde ausgeschieden!");
     
     if(gameState.deck[key] > 0) {
         gameState.deck[key]--;
@@ -332,25 +442,27 @@ export function drawCard(key, isSpecial) {
             if (result.type === 'bust') {
                 updateUI();
                 setTimeout(() => {
-                    alert(`Doppelte Karte gezogen (${result.value})! Fehlschlag für ${player.name}!`);
-                    Engine.bustTurn(player);
-                    updateUI();
+                    showAlert(`Doppelte Karte gezogen (${result.value})! Fehlschlag für ${player.name}!`, "Fehlschlag!", () => {
+                        Engine.bustTurn();
+                        updateUI();
+                    });
                 }, 300);
             } else if (result.type === 'flip7') {
                 updateUI();
                 setTimeout(() => {
-                    alert(`Flip7 für ${player.name}! 7 Karten ohne doppelte! +15 Bonuspunkte.`);
-                    Engine.bankTurn(player);
-                    updateUI();
+                    showAlert(`Flip7 für ${player.name}! 7 Karten ohne doppelte! +15 Bonuspunkte.`, "Flip7!", () => {
+                        Engine.bankTurn();
+                        updateUI();
+                    });
                 }, 300);
             } else if (result.type === 'saved') {
                 updateUI();
-                setTimeout(() => alert("Second Chance eingelöst! Die doppelte Karte wurde abgeworfen."), 100);
-                Engine.nextPlayer();
-                updateUI();
+                setTimeout(() => {
+                    showAlert("Second Chance eingelöst! Die doppelte Karte wurde abgeworfen.", "Glück gehabt!", () => {
+                        finishDrawTurn(player);
+                    });
+                }, 100);
             } else {
-                Engine.nextPlayer(); // Should we end turn after number card? Original code did finishDrawTurn
-                // Wait, original finishDrawTurn was more complex
                 finishDrawTurn(player);
             }
         }
@@ -411,8 +523,8 @@ function handleSpecialCard(player, type) {
                 const target = gameState.players.find(p => p.id === targetId);
                 target.frozen = true;
                 target.hasFinishedRound = true;
-                Engine.bankTurn(target); // silent bank in UI sense? No, Engine.bankTurn adds history
-                Engine.addHistory(player.name, `Hat ${target.name} eingefroren ❄️!`, "fail");
+                Engine.bankTurn(target);
+                Engine.addHistory(player.name, `Hat ${target.name} eingefroren ❄️!`, "warning");
                 finishDrawTurn(player);
             });
         }
@@ -432,7 +544,7 @@ function handleSpecialCard(player, type) {
 }
 
 function botSelectTarget(bot, action) {
-    const availableTargets = gameState.players.filter(p => !p.frozen && p.id !== bot.id);
+    const availableTargets = gameState.players.filter(p => !p.frozen && !p.hasFinishedRound && p.id !== bot.id);
     if (availableTargets.length === 0) {
         Engine.addHistory(bot.name, `Zog ${SPECIAL_LABELS[action]}, aber niemand ist ein gültiges Ziel.`, "neutral");
         finishDrawTurn(bot);
@@ -445,7 +557,7 @@ function botSelectTarget(bot, action) {
         target.frozen = true;
         target.hasFinishedRound = true;
         Engine.bankTurn(target);
-        Engine.addHistory(bot.name, `Hat ${target.name} eingefroren ❄️!`, "fail");
+        Engine.addHistory(bot.name, `Hat ${target.name} eingefroren ❄️!`, "warning");
         finishDrawTurn(bot);
     } else if (action === 'flip3') {
         target = availableTargets.reduce((prev, current) => (prev.currentCards.length > current.currentCards.length) ? prev : current);
@@ -486,48 +598,61 @@ function updateProbabilities(totalCards, currentCards) {
     stackedBar.className = 'stacked-bar';
 
     const getSegmentColor = (key, isDanger, type) => {
-        if (isDanger) return '#ef4444'; 
-        if (type === 'special') return '#8b5cf6'; 
-        if (type === 'bonus') return '#eab308'; 
+        if (isDanger) return 'var(--danger-color)'; 
+        if (type === 'special') return 'var(--special-color)'; 
+        if (type === 'bonus') return 'var(--bonus-color)'; 
         const num = parseInt(key);
-        return `hsl(217, 90%, ${40 + ((12 - num) * 3)}%)`;
+        // Varying blue tones for numbers
+        return `hsl(217, 90%, ${35 + ((12 - num) * 3)}%)`;
     };
 
-    const addSegment = (label, count, isDanger, type) => {
+    // Calculate all probabilities first to find max for scaling
+    const probs = [];
+    const addProbData = (label, count, isDanger, type) => {
         if (count === 0) return;
         const prob = (count / totalCards) * 100;
-        const color = getSegmentColor(label, isDanger, type);
-        
-        const segment = document.createElement('div');
-        segment.className = 'bar-segment';
-        segment.style.width = `${prob}%`;
-        segment.style.backgroundColor = color;
-        segment.title = `${label}: ${prob.toFixed(1)}%`;
-        stackedBar.appendChild(segment);
-
-        // List Row
-        const row = document.createElement('div');
-        row.className = 'prob-row';
-        row.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 0.5rem">
-                <div class="prob-dot" style="background: ${color}"></div>
-                <span>${label}</span>
-            </div>
-            <span style="font-weight: 600; ${isDanger ? 'color: var(--danger-color)' : ''}">${prob.toFixed(1)}%</span>
-        `;
-        elements.probList.appendChild(row);
+        probs.push({ label, count, isDanger, type, prob });
     };
 
-    // 1. Danger cards
-    drawnSet.forEach(val => addSegment(val, gameState.deck[val], true, 'number'));
-    // 2. Safe numbers
-    for(let i=0; i<=12; i++) if(!drawnSet.has(i)) addSegment(i, gameState.deck[i], false, 'number');
-    // 3. Special
-    addSegment('Flip 3', gameState.deck['flip3'], false, 'special');
-    addSegment('Freeze', gameState.deck['freeze'], false, 'special');
-    addSegment('2nd Chance', gameState.deck['second_chance'], false, 'special');
-    // 4. Bonus
-    ['x2', '+2', '+4', '+6', '+8', '+10'].forEach(k => addSegment(k, gameState.deck[k], false, 'bonus'));
+    drawnSet.forEach(val => addProbData(val, gameState.deck[val], true, 'number'));
+    for(let i=0; i<=12; i++) if(!drawnSet.has(i)) addProbData(i, gameState.deck[i], false, 'number');
+    addProbData('F3', gameState.deck['flip3'], false, 'special');
+    addProbData('Frz', gameState.deck['freeze'], false, 'special');
+    addProbData('SC', gameState.deck['second_chance'], false, 'special');
+    ['x2', '+2', '+4', '+6', '+8', '+10'].forEach(k => addProbData(k, gameState.deck[k], false, 'bonus'));
+
+    const maxProb = Math.max(...probs.map(p => p.prob), 1);
+
+    probs.forEach(p => {
+        const color = getSegmentColor(p.label, p.isDanger, p.type);
+        
+        // 1. Add to top horizontal stacked bar
+        const segment = document.createElement('div');
+        segment.className = 'bar-segment';
+        segment.style.width = `${p.prob}%`;
+        segment.style.backgroundColor = color;
+        segment.title = `${p.label}: ${p.prob.toFixed(1)}%`;
+        stackedBar.appendChild(segment);
+
+        // 2. Add to bottom detailed bar list
+        const item = document.createElement('div');
+        item.className = `prob-item ${p.isDanger ? 'danger' : ''} ${p.type === 'special' ? 'special-prob' : ''} ${p.type === 'bonus' ? 'bonus-prob' : ''}`;
+        
+        // Scale height relative to maxProb for better visibility
+        const displayHeight = (p.prob / maxProb) * 100;
+
+        item.innerHTML = `
+            <div class="prob-card-val" title="${p.label}">${p.label}</div>
+            <div class="prob-bar-bg">
+                <div class="prob-bar-fill" style="width: ${displayHeight}%; background-color: ${color}"></div>
+            </div>
+            <div class="prob-text">${p.prob.toFixed(1)}%</div>
+        `;
+        elements.probList.appendChild(item);
+
+    });
 
     if(elements.probStackedBar) elements.probStackedBar.appendChild(stackedBar);
 }
+
+

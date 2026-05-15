@@ -9,10 +9,12 @@ function init() {
     
     // Event Listeners
     UI.elements.btnResetDeck.addEventListener('click', () => {
-        if(confirm("Bist du sicher, dass du das Deck neu mischen möchtest?")) {
-            Engine.resetDeck();
-            UI.updateUI();
-        }
+        UI.openModal("Deck mischen", "Bist du sicher, dass du das Deck neu mischen möchtest?", (confirmed) => {
+            if (confirmed) {
+                Engine.resetDeck();
+                UI.updateUI();
+            }
+        }, null, "Mischen");
     });
 
     UI.elements.btnNewRound.addEventListener('click', () => {
@@ -21,9 +23,11 @@ function init() {
     });
 
     UI.elements.btnHardReset.addEventListener('click', () => {
-        if(confirm("ACHTUNG: Möchtest du das aktuelle Spiel komplett löschen?")) {
-            clearState();
-        }
+        UI.openModal("Spiel zurücksetzen", "ACHTUNG: Möchtest du das aktuelle Spiel komplett löschen?", (confirmed) => {
+            if (confirmed) {
+                clearState();
+            }
+        }, null, "Löschen");
     });
 
     UI.elements.btnExport.addEventListener('click', exportState);
@@ -92,10 +96,10 @@ function importState(event) {
             gameState.history.forEach(h => h.time = new Date(h.time));
             saveState();
             UI.updateUI();
-            alert("Spielstand erfolgreich geladen!");
+            UI.showAlert("Spielstand erfolgreich geladen!");
         } catch (error) {
             console.error("Error parsing JSON:", error);
-            alert("Fehler beim Laden der Datei.");
+            UI.showAlert("Fehler beim Laden der Datei.", "Fehler");
         }
         UI.elements.fileImport.value = '';
     };
