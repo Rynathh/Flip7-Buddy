@@ -3,3 +3,12 @@
 node_modules/
 .vscode/
 .gemini/
+.agent/
+
+
+# Agent Framework
+.tmp/
+log/
+.env
+credentials.json
+token.json
