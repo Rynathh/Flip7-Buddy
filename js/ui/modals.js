@@ -1,10 +1,24 @@
+/**
+ * @module ui/modals
+ * @description Modal dialogs: confirmation prompts, alerts, player selection, and round-end summaries.
+ */
+
 import { gameState } from '../state.js';
 import * as Engine from '../engine.js';
 import { elements } from './dom.js';
 import { updateUI } from './render.js';
 
+/** @type {Function|null} Currently active modal callback (unused but kept for potential future use). */
 let modalCallback = null;
 
+/**
+ * Opens a modal dialog with either a confirm button or a list of player buttons.
+ * @param {string} title - Modal heading text.
+ * @param {string} desc - Modal description text.
+ * @param {Function} callback - Called with true (confirm) or player ID (selection).
+ * @param {Array|null} [filteredPlayers=null] - Specific player list to show. Defaults to all eligible players.
+ * @param {string|null} [confirmText=null] - If provided, shows a single confirm button instead of player list.
+ */
 export function openModal(title, desc, callback, filteredPlayers = null, confirmText = null) {
     elements.modalTitle.textContent = title;
     elements.modalDesc.textContent = desc;
@@ -15,9 +29,7 @@ export function openModal(title, desc, callback, filteredPlayers = null, confirm
     
     if (confirmText) {
         const btn = document.createElement('button');
-        btn.className = 'btn-primary';
-        btn.style.width = '100%';
-        btn.style.padding = '0.75rem';
+        btn.className = 'btn-primary modal-action-btn';
         btn.textContent = confirmText;
         btn.onclick = () => {
             closeModal();
@@ -29,9 +41,7 @@ export function openModal(title, desc, callback, filteredPlayers = null, confirm
         
         targets.forEach(p => {
             const btn = document.createElement('button');
-            btn.className = 'btn-primary';
-            btn.style.width = '100%';
-            btn.style.marginBottom = '0.5rem';
+            btn.className = 'btn-primary modal-select-btn';
             btn.textContent = p.name;
             btn.onclick = () => {
                 closeModal();
@@ -44,11 +54,20 @@ export function openModal(title, desc, callback, filteredPlayers = null, confirm
     elements.modal.style.display = 'flex';
 }
 
+/**
+ * Closes the currently open modal and clears the callback reference.
+ */
 export function closeModal() {
     elements.modal.style.display = 'none';
     modalCallback = null;
 }
 
+/**
+ * Displays a simple alert modal with an OK button.
+ * @param {string} message - Alert message (supports newlines with pre-wrap).
+ * @param {string} [title="Hinweis"] - Alert heading.
+ * @param {Function|null} [callback=null] - Optional callback fired after OK is clicked.
+ */
 export function showAlert(message, title = "Hinweis", callback = null) {
     elements.modalTitle.textContent = title;
     elements.modalDesc.textContent = message;
@@ -58,9 +77,7 @@ export function showAlert(message, title = "Hinweis", callback = null) {
     elements.btnCancelModal.style.display = 'none';
     
     const btn = document.createElement('button');
-    btn.className = 'btn-primary';
-    btn.style.width = '100%';
-    btn.style.padding = '0.75rem';
+    btn.className = 'btn-primary modal-action-btn';
     btn.textContent = "OK";
     btn.onclick = () => {
         closeModal();
@@ -71,10 +88,15 @@ export function showAlert(message, title = "Hinweis", callback = null) {
     elements.modal.style.display = 'flex';
 }
 
+/**
+ * Shows an animated round-end summary modal with player scores and a countdown
+ * that auto-starts a new round after 5 seconds.
+ * @param {Array} players - Array of player objects to display in the ranking.
+ */
 export function showRoundEndModal(players) {
     elements.modalTitle.textContent = "Runde Beendet!";
     
-    let html = '<div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">';
+    let html = '<div class="round-end-scores">';
     const sorted = [...players].sort((a,b) => b.score - a.score);
     sorted.forEach((p, index) => {
         let icon = '';
@@ -82,12 +104,12 @@ export function showRoundEndModal(players) {
         else if (index === 1) icon = '🥈';
         else if (index === 2) icon = '🥉';
         
-        html += `<div style="animation: fadeInUp 0.4s ease forwards ${index * 0.1}s; opacity: 0; display: flex; justify-content: space-between; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 0.4rem; border: 1px solid var(--panel-border);">
+        html += `<div class="round-end-row" style="animation-delay: ${index * 0.1}s">
             <span>${icon} ${p.name}</span>
-            <span style="font-weight: bold; color: #34d399;">${p.score}</span>
+            <span class="round-end-score">${p.score}</span>
         </div>`;
     });
-    html += '</div><div style="text-align: center; font-size: 0.9rem; color: var(--text-secondary);">Neue Runde startet in <strong id="round-countdown" style="color: white;">5</strong>...</div>';
+    html += '</div><div class="round-end-countdown">Neue Runde startet in <strong id="round-countdown">5</strong>...</div>';
     
     elements.modalDesc.innerHTML = html;
     elements.modalDesc.style.whiteSpace = 'normal';
@@ -95,9 +117,7 @@ export function showRoundEndModal(players) {
     elements.modalPlayers.innerHTML = '';
     
     const btn = document.createElement('button');
-    btn.className = 'btn-success';
-    btn.style.width = '100%';
-    btn.style.marginTop = '0.5rem';
+    btn.className = 'btn-success modal-action-btn modal-action-btn--start';
     btn.textContent = "Jetzt starten";
     btn.onclick = () => {
         if(window.roundEndTimer) clearInterval(window.roundEndTimer);

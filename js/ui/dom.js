@@ -1,3 +1,9 @@
+/**
+ * @module ui/dom
+ * @description Cached references to all DOM elements used by the UI layer.
+ * Populated once at module load time to avoid repeated getElementById calls.
+ */
+
 export const elements = {
     cardsRemaining: document.getElementById('cards-remaining'),
     btnResetDeck: document.getElementById('btn-reset-deck'),

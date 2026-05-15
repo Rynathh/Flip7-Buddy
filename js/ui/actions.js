@@ -1,9 +1,20 @@
+/**
+ * @module ui/actions
+ * @description User and bot action handlers: card drawing, special card resolution,
+ * player selection, and bot turn automation.
+ */
+
 import { gameState } from '../state.js';
 import { SPECIAL_LABELS } from '../constants.js';
 import * as Engine from '../engine.js';
 import { showAlert, openModal } from './modals.js';
 import { updateUI } from './render.js';
 
+/**
+ * Handles automated bot turns. Waits 1.2s before executing the bot's decision
+ * to give a natural feel. Guards against re-entrant calls via window.botActing.
+ * @param {Object} activePlayer - The current active player (checked for bot status).
+ */
 export function handleBotTurn(activePlayer) {
     if (activePlayer && activePlayer.isBot && !activePlayer.frozen && !activePlayer.hasFinishedRound) {
         if (!window.botActing) {
@@ -25,6 +36,10 @@ export function handleBotTurn(activePlayer) {
     }
 }
 
+/**
+ * Selects a player as the active player. Rejects frozen or finished players.
+ * @param {number} id - The player ID to select.
+ */
 export function selectPlayer(id) {
     const p = gameState.players.find(p => p.id === id);
     if (p.frozen) return showAlert("Dieser Spieler ist eingefroren!");
@@ -33,6 +48,11 @@ export function selectPlayer(id) {
     updateUI();
 }
 
+/**
+ * Draws a random card from the deck using weighted probability.
+ * Auto-resets the deck if empty. Delegates to drawCard() for processing.
+ * @param {Object} [playerOverride] - Optional specific player. Uses active player if omitted.
+ */
 export function virtualDrawCard(playerOverride) {
     const player = playerOverride || Engine.getActivePlayer();
     if (!player) return showAlert("Bitte wähle zuerst einen Spieler aus.");
@@ -57,11 +77,17 @@ export function virtualDrawCard(playerOverride) {
     
     if (drawnKey !== null) {
         const isSpecial = isNaN(parseInt(drawnKey));
-        // The calling function should handle the drawing logic
         drawCard(drawnKey, isSpecial);
     }
 }
 
+/**
+ * Processes a drawn card (manual or virtual). Decrements the deck count,
+ * then delegates to handleSpecialCard or Engine.handleNumberCard.
+ * Shows appropriate modals for bust, Flip7, or Second Chance saves.
+ * @param {string} key - The card key (number string or special card name).
+ * @param {boolean} isSpecial - Whether this is a special (non-number) card.
+ */
 export function drawCard(key, isSpecial) {
     if(!gameState.activePlayerId) return showAlert("Bitte wähle zuerst einen Spieler aus.");
     
@@ -105,6 +131,11 @@ export function drawCard(key, isSpecial) {
     }
 }
 
+/**
+ * Completes a draw turn. Handles Flip3 forced-draw countdown,
+ * then advances to the next player.
+ * @param {Object} player - The player whose turn is finishing.
+ */
 function finishDrawTurn(player) {
     if (player.flip3Count > 0) {
         player.flip3Count--;
@@ -117,6 +148,13 @@ function finishDrawTurn(player) {
     updateUI();
 }
 
+/**
+ * Handles special card effects: Second Chance (shield or pass), Freeze (target selection),
+ * Flip3 (forced draws), and bonus/multiplier cards.
+ * Bots auto-select targets; human players get a modal prompt.
+ * @param {Object} player - The player who drew the special card.
+ * @param {string} type - The special card type key.
+ */
 function handleSpecialCard(player, type) {
     updateUI(); // reflect deck count
     
@@ -179,6 +217,13 @@ function handleSpecialCard(player, type) {
     }
 }
 
+/**
+ * Bot AI target selection for Freeze and Flip3 cards.
+ * - Freeze: targets the player with the highest score.
+ * - Flip3: targets the player with the most drawn cards (highest bust risk).
+ * @param {Object} bot - The bot player executing the action.
+ * @param {string} action - 'freeze' or 'flip3'.
+ */
 function botSelectTarget(bot, action) {
     const availableTargets = gameState.players.filter(p => !p.frozen && !p.hasFinishedRound && p.id !== bot.id);
     if (availableTargets.length === 0) {

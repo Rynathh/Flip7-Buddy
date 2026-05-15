@@ -1,7 +1,28 @@
+/**
+ * @module ui/probabilities
+ * @description Probability visualization: bust risk calculation, stacked bar chart,
+ * and per-card probability list with color-coded segments.
+ */
+
 import { gameState } from '../state.js';
 import * as Engine from '../engine.js';
 import { elements } from './dom.js';
 
+/**
+ * Recalculates and renders the probability display:
+ * - Bust probability percentage (with shield awareness)
+ * - Horizontal stacked bar showing card distribution
+ * - Vertical list of individual card probabilities with fill bars
+ * 
+ * Color scheme:
+ * - Red: duplicate (danger) cards
+ * - Purple: special action cards (Flip3, Freeze, Second Chance)
+ * - Gold: bonus cards (x2, +2..+10)
+ * - Blue gradient: safe number cards (darker = higher number)
+ * 
+ * @param {number} totalCards - Total cards remaining in the deck.
+ * @param {number[]} currentCards - Array of number cards the active player has drawn.
+ */
 export function updateProbabilities(totalCards, currentCards) {
     elements.probList.innerHTML = '';
     if(elements.probStackedBar) elements.probStackedBar.innerHTML = '';
@@ -36,7 +57,6 @@ export function updateProbabilities(totalCards, currentCards) {
         if (type === 'special') return 'var(--special-color)'; 
         if (type === 'bonus') return 'var(--bonus-color)'; 
         const num = parseInt(key);
-        // Varying blue tones for numbers
         return `hsl(217, 90%, ${35 + ((12 - num) * 3)}%)`;
     };
 
@@ -60,7 +80,7 @@ export function updateProbabilities(totalCards, currentCards) {
     probs.forEach(p => {
         const color = getSegmentColor(p.label, p.isDanger, p.type);
         
-        // 1. Add to top horizontal stacked bar
+        // Horizontal stacked bar segment
         const segment = document.createElement('div');
         segment.className = 'bar-segment';
         segment.style.width = `${p.prob}%`;
@@ -68,11 +88,10 @@ export function updateProbabilities(totalCards, currentCards) {
         segment.title = `${p.label}: ${p.prob.toFixed(1)}%`;
         stackedBar.appendChild(segment);
 
-        // 2. Add to bottom detailed bar list
+        // Detailed probability row
         const item = document.createElement('div');
         item.className = `prob-item ${p.isDanger ? 'danger' : ''} ${p.type === 'special' ? 'special-prob' : ''} ${p.type === 'bonus' ? 'bonus-prob' : ''}`;
         
-        // Scale height relative to maxProb for better visibility
         const displayHeight = (p.prob / maxProb) * 100;
 
         item.innerHTML = `
@@ -83,7 +102,6 @@ export function updateProbabilities(totalCards, currentCards) {
             <div class="prob-text">${p.prob.toFixed(1)}%</div>
         `;
         elements.probList.appendChild(item);
-
     });
 
     if(elements.probStackedBar) elements.probStackedBar.appendChild(stackedBar);

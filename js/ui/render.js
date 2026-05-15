@@ -1,3 +1,8 @@
+/**
+ * @module ui/render
+ * @description Core UI rendering: player list, turn display, history log, button states, and card buttons.
+ */
+
 import { gameState, saveState } from '../state.js';
 import { SPECIAL_LABELS } from '../constants.js';
 import * as Engine from '../engine.js';
@@ -6,6 +11,12 @@ import { showRoundEndModal, showAlert } from './modals.js';
 import { handleBotTurn, selectPlayer } from './actions.js';
 import { updateProbabilities } from './probabilities.js';
 
+/**
+ * Main UI update function. Refreshes all dynamic parts of the interface:
+ * player list, active turn display, history log, button states, probabilities,
+ * and triggers bot turns or round-end modals as needed.
+ * Also persists state to localStorage after each update.
+ */
 export function updateUI() {
     const totalCards = Engine.getTotalCardsInDeck();
     elements.cardsRemaining.textContent = totalCards;
@@ -22,7 +33,7 @@ export function updateUI() {
         if(p.specialCards.length > 0) cardsText.push(p.specialCards.map(s => SPECIAL_LABELS[s]).join(', '));
         
         const cardsHtml = cardsText.length > 0 
-            ? `<div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">Tisch: ${cardsText.join(' | ')}</div>` 
+            ? `<div class="player-cards-info">Tisch: ${cardsText.join(' | ')}</div>` 
             : '';
 
         let buffs = '';
@@ -34,8 +45,8 @@ export function updateUI() {
         const statusText = p.frozen ? ' (Eingefroren)' : (p.hasFinishedRound ? ' (Fertig)' : '');
 
         div.innerHTML = `
-            <div style="flex: 1">
-                <div style="display: flex; justify-content: space-between;">
+            <div class="player-item-inner">
+                <div class="player-item-header">
                     <span class="player-name">${p.name}${botIcon}${statusText}</span>
                     <span class="player-score">${p.score}</span>
                 </div>
@@ -101,7 +112,7 @@ export function updateUI() {
         div.innerHTML = `
             <div class="history-header">
                 <span>${h.playerName}</span>
-                <span style="font-size: 0.8rem; font-weight: normal">${timeStr}</span>
+                <span class="history-time">${timeStr}</span>
             </div>
             <div class="history-details">${h.details}</div>
         `;
@@ -136,6 +147,11 @@ export function updateUI() {
     }
 }
 
+/**
+ * Updates the enabled/disabled state of all card buttons and action buttons
+ * based on deck availability and the active player's status.
+ * @param {Object|undefined} activePlayer - The currently active player, or undefined.
+ */
 function updateButtonStates(activePlayer) {
     const allButtons = [
         ...elements.numberButtons.children, 
@@ -168,6 +184,9 @@ function updateButtonStates(activePlayer) {
     }
 }
 
+/**
+ * Checks if any player has reached the winning score (200+) and shows the game-end alert.
+ */
 function checkWinner() {
     const winner = gameState.players.find(p => p.score >= 200);
     if (winner && !gameState.gameEnded) {
@@ -179,6 +198,11 @@ function checkWinner() {
     }
 }
 
+/**
+ * Creates and inserts all card buttons (numbers 0–12, action cards, bonus cards)
+ * into their respective containers.
+ * @param {Function} onDraw - Callback invoked with (key, isSpecial) when a card button is clicked.
+ */
 export function renderCardButtons(onDraw) {
     elements.numberButtons.innerHTML = '';
     for(let i = 0; i <= 12; i++) {

@@ -16,7 +16,7 @@
                 <button id="btn-new-round" class="btn-success btn-sm">Neue Runde</button>
                 <button id="btn-reset-deck" class="btn-secondary btn-sm">Deck Mischen</button>
                 
-                <span style="color: var(--card-border)">|</span>
+                <span class="header-separator">|</span>
                 
                 <button id="btn-export" class="btn-primary btn-sm" title="Spielstand als Datei (.json) speichern">Speichern</button>
                 <button id="btn-import-trigger" class="btn-secondary btn-sm" title="Spielstand aus Datei (.json) laden">Laden</button>
@@ -36,9 +36,9 @@
                     <div id="players-list" class="players-list scrollable"></div>
                     <form id="add-player-form" class="add-player-form mt-auto">
                         <input type="text" id="new-player-name" placeholder="Neuer Spieler..." required>
-                        <div style="display: flex; align-items: center; gap: 0.3rem; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 0.4rem; padding: 0 0.4rem;">
-                            <input type="checkbox" id="new-player-is-bot" style="margin: 0; cursor: pointer;">
-                            <label for="new-player-is-bot" style="font-size: 0.8rem; cursor: pointer; user-select: none;" title="Als KI-Gegner hinzufügen">🤖</label>
+                        <div class="bot-toggle">
+                            <input type="checkbox" id="new-player-is-bot">
+                            <label for="new-player-is-bot" title="Als KI-Gegner hinzufügen">🤖</label>
                         </div>
                         <button type="submit" class="btn-primary">+</button>
                     </form>
@@ -76,7 +76,7 @@
                         </div>
                         <div class="stat-box">
                             <span class="stat-label">Karten</span>
-                            <span class="stat-value" id="turn-count">0<span style="font-size: 0.5em; font-weight: normal; color: var(--text-secondary)">/7</span></span>
+                            <span class="stat-value" id="turn-count">0<span class="stat-value-suffix">/7</span></span>
                         </div>
                         <div class="stat-box">
                             <span class="stat-label">Risiko</span>
@@ -91,19 +91,19 @@
                 </div>
                 
                 <div class="panel flex-panel" style="flex: 1">
-                        <button id="btn-draw-random" class="btn-primary" style="width: 100%; padding: 0.6rem; font-size: 1rem; margin-bottom: 1rem; font-weight: 700; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4); text-transform: uppercase; letter-spacing: 1px;">🎲 Virtuelle Karte ziehen</button>
+                        <button id="btn-draw-random" class="btn-primary btn-draw-random">🎲 Virtuelle Karte ziehen</button>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem;">
+                        <div class="card-grid">
                             <!-- Sonderkarten Links -->
                             <div>
-                                <h2 style="font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--text-secondary); text-transform: uppercase;">Aktion & Bonus</h2>
-                                <div class="card-buttons" style="grid-template-columns: repeat(2, 1fr); gap: 0.3rem; margin-bottom: 0.5rem;" id="action-buttons"></div>
-                                <div class="card-buttons" style="grid-template-columns: repeat(3, 1fr); gap: 0.3rem;" id="bonus-buttons"></div>
+                                <h2 class="card-section-title">Aktion & Bonus</h2>
+                                <div class="card-buttons card-buttons--actions" id="action-buttons"></div>
+                                <div class="card-buttons card-buttons--bonus" id="bonus-buttons"></div>
                             </div>
                             
                             <div>
-                                <h2 style="font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--text-secondary); text-transform: uppercase;">Zahlenkarten</h2>
-                                <div class="card-buttons" style="grid-template-columns: repeat(4, 1fr); gap: 0.3rem;" id="number-buttons"></div>
+                                <h2 class="card-section-title">Zahlenkarten</h2>
+                                <div class="card-buttons card-buttons--numbers" id="number-buttons"></div>
                             </div>
                         </div>
                 </div>
@@ -133,7 +133,7 @@
             <div id="modal-player-list" class="modal-players">
                 <!-- Players generated via JS -->
             </div>
-            <button id="btn-cancel-modal" class="btn-secondary" style="margin-top: 1rem; width: 100%">Abbrechen</button>
+            <button id="btn-cancel-modal" class="btn-secondary btn-cancel-modal">Abbrechen</button>
         </div>
     </div>
 

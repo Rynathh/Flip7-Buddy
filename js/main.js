@@ -1,7 +1,16 @@
+/**
+ * @module main
+ * @description Application entry point. Initializes state, renders the UI, and binds all event listeners.
+ */
+
 import { gameState, loadState, saveState, clearState } from './state.js';
 import * as Engine from './engine.js';
 import * as UI from './ui.js';
 
+/**
+ * Bootstraps the application: loads persisted state, renders card buttons,
+ * updates the UI, and attaches all DOM event listeners.
+ */
 function init() {
     loadState();
     UI.renderCardButtons((key, isSpecial) => UI.drawCard(key, isSpecial));
@@ -63,6 +72,9 @@ function init() {
     UI.elements.btnCancelModal.addEventListener('click', () => UI.closeModal());
 }
 
+/**
+ * Exports the current game state as a downloadable JSON file.
+ */
 function exportState() {
     const state = { 
         deck: gameState.deck, 
@@ -80,6 +92,11 @@ function exportState() {
     downloadAnchorNode.remove();
 }
 
+/**
+ * Imports a game state from a user-selected JSON file. Validates the data,
+ * restores all state fields, and refreshes the UI.
+ * @param {Event} event - The file input change event.
+ */
 function importState(event) {
     const file = event.target.files[0];
     if (!file) return;

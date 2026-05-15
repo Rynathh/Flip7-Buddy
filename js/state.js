@@ -1,5 +1,22 @@
+/**
+ * @module state
+ * @description Central game state management with localStorage persistence.
+ */
+
 import { INITIAL_DECK } from './constants.js';
 
+/**
+ * The global game state object. All game data lives here and is mutated in-place.
+ * @type {{
+ *   deck: Object.<string, number>,
+ *   players: Array.<Object>,
+ *   activePlayerId: number|null,
+ *   roundStarterId: number|null,
+ *   history: Array.<Object>,
+ *   gameEnded: boolean,
+ *   gameStarted: boolean
+ * }}
+ */
 export const gameState = {
     deck: { ...INITIAL_DECK },
     players: [],
@@ -10,6 +27,9 @@ export const gameState = {
     gameStarted: false
 };
 
+/**
+ * Persists the current game state to localStorage as JSON.
+ */
 export function saveState() {
     const state = {
         deck: gameState.deck,
@@ -22,6 +42,11 @@ export function saveState() {
     localStorage.setItem('flip7_buddy_state', JSON.stringify(state));
 }
 
+/**
+ * Loads game state from localStorage. Applies defaults for any missing player fields
+ * to ensure backward compatibility with older save formats.
+ * @returns {boolean} True if state was successfully loaded, false otherwise.
+ */
 export function loadState() {
     const saved = localStorage.getItem('flip7_buddy_state');
     if (saved) {
@@ -48,6 +73,9 @@ export function loadState() {
     return false;
 }
 
+/**
+ * Clears the saved state from localStorage and reloads the page.
+ */
 export function clearState() {
     localStorage.removeItem('flip7_buddy_state');
     location.reload();
